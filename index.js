@@ -50,7 +50,7 @@ const lipSyncMessage = async (message) => {
   console.log(`Conversion done in ${new Date().getTime() - time}ms`);
   console.log("Starting LypSync -> wav to json data")
   await execCommand(
-    `/home/dark/Downloads/rhubarb-bin/Rhubarb-Lip-Sync-1.13.0-Linux/bin/rhubarb -f json -o audios/message_${message}.json audios/message_${message}.wav -r phonetic`
+    `bin\\rhubarb -f json -o audios/message_${message}.json audios/message_${message}.wav -r phonetic`
   );
   // -r phonetic is faster but less accurate
   console.log(`Lip sync done in ${new Date().getTime() - time}ms`);
@@ -68,7 +68,7 @@ const lipSyncAudio = async (audioFilePath) => {
 
   console.log("Starting LipSync -> wav to json data");
   await execCommand(
-    `/home/dark/Downloads/rhubarb-bin/Rhubarb-Lip-Sync-1.13.0-Linux/bin/rhubarb -f json -o ${audioFilePath.replace('.wav', '.json')} ${audioFilePath} -r phonetic`
+    `bin\\rhubarb -f json -o ${audioFilePath.replace('.wav', '.json')} ${audioFilePath} -r phonetic`
   );
   console.log(`Lip sync done in ${new Date().getTime() - time}ms`);
 };
