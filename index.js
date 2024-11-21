@@ -6,6 +6,7 @@ import express from "express";
 import { promises as fs } from "fs";
 import OpenAI from "openai";
 import fileUpload from 'express-fileupload';
+import { Pinecone } from '@pinecone-database/pinecone'
 dotenv.config();
 
 const openai = new OpenAI({
@@ -94,6 +95,43 @@ app.post("/process-audio", async (req, res) => {
   ];
 
   res.send({ messages });
+});
+
+
+app.post("/getKnowledgeBase", async (req, res) => {
+  const query = req.body.query;
+  console.log("get KnowledgeBase!!!!!!!!!!!!!!!!!!!!!!!!!!")
+  
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY, 
+    dangerouslyAllowBrowser: true
+  });
+
+
+  let embeddingVector;
+
+  const embeddingResponse = await openai.embeddings.create({
+    model: 'text-embedding-ada-002',
+    input: query,
+  });
+
+  embeddingVector = embeddingResponse.data[0].embedding;
+
+  const pc = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
+
+  let queryResponse;
+
+  const index = pc.index("tecsup");
+
+  queryResponse = await index.namespace("2600-Chancado-Primario").query({
+    topK: 3,
+    vector: embeddingVector,
+    includeMetadata: true,
+  });
+
+  console.log("CHUNKS: ", queryResponse);
+
+  res.send({ queryResponse });
 });
 
 
