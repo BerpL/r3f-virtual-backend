@@ -1,12 +1,9 @@
-stages:
-  - deploy
-
 deploy-railway:
   stage: deploy
-  image: node:14
+  image: node:16 # Usa Node.js 16 o superior para evitar problemas
   only:
     - main
   script:
-    - npm install -g railway
+    - npm install -g @railway/cli
     - railway login --token $RAILWAY_TOKEN
     - railway up --service=$RAILWAY_SERVICE_NAME --detach
