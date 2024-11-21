@@ -1,9 +1,0 @@
-deploy-railway:
-  stage: deploy
-  image: node:16
-  only:
-    - main
-  script:
-    - npm install -g @railway/cli
-    - export RAILWAY_TOKEN=$RAILWAY_TOKEN
-    - railway up --service=$RAILWAY_SERVICE_NAME --detach
