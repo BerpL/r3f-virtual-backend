@@ -1,0 +1,12 @@
+stages:
+  - deploy
+
+deploy-railway:
+  stage: deploy
+  image: node:14
+  only:
+    - main
+  script:
+    - npm install -g railway
+    - railway login --token $RAILWAY_TOKEN
+    - railway up --service=$RAILWAY_SERVICE_NAME --detach
