@@ -1,4 +1,4 @@
-import { mkdir, writeFile, chmod } from "fs/promises";
+import { mkdir, chmod } from "fs/promises";
 import { createReadStream, createWriteStream } from "fs";
 import https from "https";
 import unzipper from "unzipper";
@@ -11,12 +11,17 @@ const ZIP_PATH = `${BIN_DIR}/rhubarb.zip`;
 async function downloadFile(url, path) {
   return new Promise((resolve, reject) => {
     const file = createWriteStream(path);
-    https.get(url, (response) => {
-      response.pipe(file);
-      file.on("finish", () => file.close(resolve));
-    }).on("error", (err) => {
-      reject(err);
-    });
+    https
+      .get(url, (response) => {
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to download file: ${response.statusCode}`));
+          return;
+        }
+        response.pipe(file);
+        file.on("finish", () => file.close(resolve));
+        file.on("error", reject);
+      })
+      .on("error", reject);
   });
 }
 
@@ -25,7 +30,7 @@ async function extractZip(zipPath, destDir) {
     const stream = unzipper.Extract({ path: destDir });
     stream.on("close", resolve);
     stream.on("error", reject);
-    createReadStream(zipPath).pipe(stream);
+    createReadStream(zipPath).pipe(stream).on("error", reject);
   });
 }
 
@@ -45,7 +50,7 @@ async function installRhubarb() {
 
     console.log("Rhubarb installed successfully.");
   } catch (err) {
-    console.error("Failed to install rhubarb:", err);
+    console.error("Failed to install rhubarb:", err.message);
     process.exit(1);
   }
 }
