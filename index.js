@@ -82,7 +82,7 @@ const lipSyncAudio = async (audioFilePath) => {
 
 app.post("/process-audio", async (req, res) => {
   console.log("PROCESS AUDIO!!!!!!!!!!!!!!!!!!!!!!!!!!");
-  
+
   try {
     // Verifica si se cargó un archivo
     if (!req.files || !req.files.audio) {
@@ -91,36 +91,30 @@ app.post("/process-audio", async (req, res) => {
 
     const audioFile = req.files.audio;
 
-    // Verifica si el archivo es un MP3
-    if (!audioFile.mimetype.startsWith("audio/")) {
+    // Log para depurar los detalles del archivo
+    console.log("Uploaded file details:", {
+      name: audioFile.name,
+      mimetype: audioFile.mimetype,
+      size: audioFile.size,
+    });
+
+    // Permitir solo archivos de audio válidos
+    if (
+      !audioFile.mimetype.startsWith("audio/") &&
+      ![".mp3", ".wav"].some((ext) => audioFile.name.endsWith(ext))
+    ) {
       return res.status(400).send({ error: "Uploaded file is not an audio file." });
     }
 
     const audioFilePath = `audios/recorded_audio.wav`;
 
-    // Mueve el archivo al servidor
+    // Guarda el archivo subido
     console.log(`Saving uploaded file to ${audioFilePath}...`);
     await audioFile.mv(audioFilePath);
 
-    // Verifica el contenido del archivo
-    console.log(`Converting ${audioFilePath} to WAV using ffmpeg...`);
-    await execCommand(
-      `ffmpeg -y -i ${audioFilePath} ${audioFilePath}`
-    );
+    console.log(`File saved successfully: ${audioFilePath}`);
 
-    console.log(`Conversion completed. Verifying the WAV file...`);
-    const fileExists = await fs
-      .access(audioFilePath)
-      .then(() => true)
-      .catch(() => false);
-
-    if (!fileExists) {
-      return res
-        .status(500)
-        .send({ error: "WAV file was not created successfully." });
-    }
-
-    console.log("Starting LipSync -> wav to json data...");
+    // Llama a la función de procesamiento de audio
     await lipSyncAudio(audioFilePath);
 
     const messages = [
