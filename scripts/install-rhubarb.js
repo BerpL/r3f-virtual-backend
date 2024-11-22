@@ -34,24 +34,32 @@ async function downloadFile(url, path) {
   });
 }
 
-async function extractZip(zipPath, destDir) {
+async function extractZipAndFindBinary(zipPath, destDir) {
   return new Promise((resolve, reject) => {
-    const stream = unzipper.Extract({ path: destDir });
-    stream.on("close", resolve);
-    stream.on("error", reject);
-    createReadStream(zipPath).pipe(stream).on("error", reject);
-  });
-}
+    const binaries = [];
+    const stream = unzipper.Parse();
+    createReadStream(zipPath)
+      .pipe(stream)
+      .on("entry", (entry) => {
+        const fileName = path.basename(entry.path);
+        const fullPath = path.join(destDir, fileName);
 
-async function findRhubarbBin(dir) {
-  const files = await readdir(dir);
-  for (const file of files) {
-    const fullPath = path.join(dir, file);
-    if (file === "rhubarb") {
-      return fullPath; // Return the full path to the binary
-    }
-  }
-  throw new Error("Rhubarb binary not found after extraction");
+        if (fileName === "rhubarb") {
+          binaries.push(fullPath);
+          entry.pipe(createWriteStream(fullPath));
+        } else {
+          entry.autodrain(); // Skip other files
+        }
+      })
+      .on("close", () => {
+        if (binaries.length > 0) {
+          resolve(binaries[0]); // Return the first binary found
+        } else {
+          reject(new Error("Rhubarb binary not found in ZIP file"));
+        }
+      })
+      .on("error", reject);
+  });
 }
 
 async function installRhubarb() {
@@ -63,10 +71,7 @@ async function installRhubarb() {
     await downloadFile(RHUBARB_URL, ZIP_PATH);
 
     console.log("Extracting rhubarb...");
-    await extractZip(ZIP_PATH, BIN_DIR);
-
-    console.log("Locating rhubarb binary...");
-    const rhubarbPath = await findRhubarbBin(BIN_DIR);
+    const rhubarbPath = await extractZipAndFindBinary(ZIP_PATH, BIN_DIR);
 
     console.log("Setting executable permissions...");
     await chmod(rhubarbPath, 0o755);
