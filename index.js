@@ -9,6 +9,20 @@ import fileUpload from 'express-fileupload';
 import { Pinecone } from '@pinecone-database/pinecone'
 dotenv.config();
 
+// Verificar si rhubarb está instalado
+exec('rhubarb --version', (error, stdout, stderr) => {
+  if (error) {
+    console.error(`Error ejecutando rhubarb: ${error.message}`);
+    console.error("Asegúrate de que rhubarb esté instalado y accesible.");
+    process.exit(1); // Salir si rhubarb no está disponible
+  }
+  if (stderr) {
+    console.error(`Stderr de rhubarb: ${stderr}`);
+    process.exit(1);
+  }
+  console.log(`Rhubarb instalado: ${stdout}`);
+});
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "-", // Your OpenAI API key here, I used "-" to avoid errors when the key is not set but you should not do that
 });
@@ -17,7 +31,6 @@ const elevenLabsApiKey = process.env.ELEVEN_LABS_API_KEY;
 const voiceID = "Vpv1YgvVd6CHIzOTiTt8";
 
 const app = express();
-app.use(express.json());
 app.use(
   cors({
     origin: '*',
@@ -25,6 +38,7 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+app.use(express.json());
 app.use(fileUpload());
 const port = 3000;
 
