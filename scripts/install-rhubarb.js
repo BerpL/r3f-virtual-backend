@@ -2,6 +2,7 @@ import { mkdir, chmod } from "fs/promises";
 import { createReadStream, createWriteStream } from "fs";
 import https from "https";
 import unzipper from "unzipper";
+import { URL } from "url";
 
 const RHUBARB_URL =
   "https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.13.0/rhubarb-lip-sync-1.13.0-linux.zip";
@@ -11,17 +12,25 @@ const ZIP_PATH = `${BIN_DIR}/rhubarb.zip`;
 async function downloadFile(url, path) {
   return new Promise((resolve, reject) => {
     const file = createWriteStream(path);
-    https
-      .get(url, (response) => {
-        if (response.statusCode !== 200) {
-          reject(new Error(`Failed to download file: ${response.statusCode}`));
-          return;
-        }
+    function handleResponse(response) {
+      if (response.statusCode === 200) {
         response.pipe(file);
         file.on("finish", () => file.close(resolve));
         file.on("error", reject);
-      })
-      .on("error", reject);
+      } else if (
+        response.statusCode >= 300 &&
+        response.statusCode < 400 &&
+        response.headers.location
+      ) {
+        // Follow redirect
+        const redirectUrl = new URL(response.headers.location, url).toString();
+        https.get(redirectUrl, handleResponse).on("error", reject);
+      } else {
+        reject(new Error(`Failed to download file: ${response.statusCode}`));
+      }
+    }
+
+    https.get(url, handleResponse).on("error", reject);
   });
 }
 
