@@ -11,13 +11,14 @@
   },
   "author": "Wawa SENSEI <contact@wawasensei.dev>",
   "dependencies": {
+    "@pinecone-database/pinecone": "^4.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "elevenlabs-node": "^1.2.0",
     "express": "^4.18.2",
     "express-fileupload": "^1.5.1",
     "openai": "^4.26.0",
-    "@pinecone-database/pinecone": "^4.0.0"
+    "unzipper": "^0.12.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
