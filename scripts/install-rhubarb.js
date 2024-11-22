@@ -1,7 +1,6 @@
-import { mkdir, writeFile, chmod, createReadStream } from "fs/promises";
-import { createWriteStream } from "fs";
+import { mkdir, writeFile, chmod } from "fs/promises";
+import { createReadStream, createWriteStream } from "fs";
 import https from "https";
-import { exec } from "child_process";
 import unzipper from "unzipper";
 
 const RHUBARB_URL =
