@@ -5,8 +5,8 @@ import voice from "elevenlabs-node";
 import express from "express";
 import { promises as fs } from "fs";
 import OpenAI from "openai";
-import fileUpload from "express-fileupload";
-import { Pinecone } from "@pinecone-database/pinecone";
+import fileUpload from 'express-fileupload';
+import { Pinecone } from '@pinecone-database/pinecone'
 dotenv.config();
 
 const openai = new OpenAI({
@@ -19,9 +19,9 @@ const voiceID = "Vpv1YgvVd6CHIzOTiTt8";
 const app = express();
 app.use(
   cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(express.json());
@@ -46,107 +46,78 @@ const execCommand = (command) => {
 };
 
 const lipSyncMessage = async (message) => {
-  console.log("LYPSYNC MESSAGE!!!");
-  console.log("MESSAGE: ", message);
+  console.log("LYPSYNC MESSAGE!!!")
+  console.log("MESSAGE: ", message)
   const time = new Date().getTime();
   console.log(`Starting conversion mp3 to wav for message ${message}`);
   await execCommand(
     `ffmpeg -y -i audios/message_${message}.mp3 audios/message_${message}.wav`
+    // -y to overwrite the file
   );
   console.log(`Conversion done in ${new Date().getTime() - time}ms`);
-  console.log("Starting LipSync -> wav to json data");
+  console.log("Starting LypSync -> wav to json data")
   await execCommand(
-    `bin/rhubarb -f json -o audios/message_${message}.json audios/message_${message}.wav -r phonetic`
+    `bin\\rhubarb -f json -o audios/message_${message}.json audios/message_${message}.wav -r phonetic`
   );
+  // -r phonetic is faster but less accurate
   console.log(`Lip sync done in ${new Date().getTime() - time}ms`);
 };
+
 
 const lipSyncAudio = async (audioFilePath) => {
   const time = new Date().getTime();
   console.log(`Starting conversion mp3 to wav for ${audioFilePath}`);
   await execCommand(
-    `ffmpeg -y -i ${audioFilePath} ${audioFilePath.replace(".wav", ".mp3")}`
+    `ffmpeg -y -i ${audioFilePath} ${audioFilePath.replace('.wav', '.mp3')}`
   );
 
   console.log(`Conversion done in ${new Date().getTime() - time}ms`);
 
   console.log("Starting LipSync -> wav to json data");
   await execCommand(
-    `bin/rhubarb -f json -o ${audioFilePath.replace(
-      ".wav",
-      ".json"
-    )} ${audioFilePath} -r phonetic`
+    `bin\\rhubarb -f json -o ${audioFilePath.replace('.wav', '.json')} ${audioFilePath} -r phonetic`
   );
   console.log(`Lip sync done in ${new Date().getTime() - time}ms`);
 };
 
+
 app.post("/process-audio", async (req, res) => {
-  console.log("PROCESS AUDIO!!!!!!!!!!!!!!!!!!!!!!!!!!");
+  console.log("PROCESS AUDIO!!!!!!!!!!!!!!!!!!!!!!!!!!")
+  const audioFile = req.files.audio; 
 
-  try {
-    // Verifica si se cargó un archivo
-    if (!req.files || !req.files.audio) {
-      return res.status(400).send({ error: "No audio file uploaded." });
-    }
+  const audioFilePath = `audios/recorded_audio.wav`;
+  await audioFile.mv(audioFilePath);  
 
-    const audioFile = req.files.audio;
+  await lipSyncAudio(audioFilePath);
 
-    // Log para depurar los detalles del archivo
-    console.log("Uploaded file details:", {
-      name: audioFile.name,
-      mimetype: audioFile.mimetype,
-      size: audioFile.size,
-    });
+  const messages = [
+    {
+      text: "Here is your response...",
+      audio: await audioFileToBase64(audioFilePath),
+      lipsync: await readJsonTranscript(audioFilePath.replace('.wav', '.json')),
+      facialExpression: "smile",
+      animation: "Talking_1",
+    },
+  ];
 
-    // Permitir solo archivos de audio válidos
-    if (
-      !audioFile.mimetype.startsWith("audio/") &&
-      ![".mp3", ".wav"].some((ext) => audioFile.name.endsWith(ext))
-    ) {
-      return res.status(400).send({ error: "Uploaded file is not an audio file." });
-    }
-
-    const audioFilePath = `audios/recorded_audio.wav`;
-
-    // Guarda el archivo subido
-    console.log(`Saving uploaded file to ${audioFilePath}...`);
-    await audioFile.mv(audioFilePath);
-
-    console.log(`File saved successfully: ${audioFilePath}`);
-
-    // Llama a la función de procesamiento de audio
-    await lipSyncAudio(audioFilePath);
-
-    const messages = [
-      {
-        text: "Here is your response...",
-        audio: await audioFileToBase64(audioFilePath),
-        lipsync: await readJsonTranscript(audioFilePath.replace(".wav", ".json")),
-        facialExpression: "smile",
-        animation: "Talking_1",
-      },
-    ];
-
-    res.send({ messages });
-  } catch (err) {
-    console.error("Error processing audio:", err.message);
-    res.status(500).send({ error: "An error occurred while processing the audio." });
-  }
+  res.send({ messages });
 });
+
 
 app.post("/getKnowledgeBase", async (req, res) => {
   const query = req.body.query;
-  console.log("get KnowledgeBase!!!!!!!!!!!!!!!!!!!!!!!!!!");
-
+  console.log("get KnowledgeBase!!!!!!!!!!!!!!!!!!!!!!!!!!")
+  
   const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    dangerouslyAllowBrowser: true,
+    apiKey: process.env.OPENAI_API_KEY, 
+    dangerouslyAllowBrowser: true
   });
+
 
   let embeddingVector;
 
   const embeddingResponse = await openai.embeddings.create({
-    model: "text-embedding-ada-002",
+    model: 'text-embedding-ada-002',
     input: query,
   });
 
@@ -168,6 +139,8 @@ app.post("/getKnowledgeBase", async (req, res) => {
 
   res.send({ queryResponse });
 });
+
+
 
 app.post("/chat", async (req, res) => {
   const userMessage = req.body.message;
@@ -240,7 +213,7 @@ app.post("/chat", async (req, res) => {
   });
   let messages = JSON.parse(completion.choices[0].message.content);
 
-  console.log("messages: ", messages);
+  console.log("messages: ", messages)
 
   if (messages.messages) {
     messages = messages.messages; // ChatGPT is not 100% reliable, sometimes it directly returns an array and sometimes a JSON object with a messages property
