@@ -1,4 +1,4 @@
-import { mkdir, writeFile, chmod } from "fs/promises";
+import { mkdir, writeFile, chmod, createReadStream } from "fs/promises";
 import { createWriteStream } from "fs";
 import https from "https";
 import { exec } from "child_process";
