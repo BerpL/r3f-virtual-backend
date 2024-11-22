@@ -82,24 +82,62 @@ const lipSyncAudio = async (audioFilePath) => {
 
 app.post("/process-audio", async (req, res) => {
   console.log("PROCESS AUDIO!!!!!!!!!!!!!!!!!!!!!!!!!!");
-  const audioFile = req.files.audio;
+  
+  try {
+    // Verifica si se cargó un archivo
+    if (!req.files || !req.files.audio) {
+      return res.status(400).send({ error: "No audio file uploaded." });
+    }
 
-  const audioFilePath = `audios/recorded_audio.wav`;
-  await audioFile.mv(audioFilePath);
+    const audioFile = req.files.audio;
 
-  await lipSyncAudio(audioFilePath);
+    // Verifica si el archivo es un MP3
+    if (!audioFile.mimetype.startsWith("audio/")) {
+      return res.status(400).send({ error: "Uploaded file is not an audio file." });
+    }
 
-  const messages = [
-    {
-      text: "Here is your response...",
-      audio: await audioFileToBase64(audioFilePath),
-      lipsync: await readJsonTranscript(audioFilePath.replace(".wav", ".json")),
-      facialExpression: "smile",
-      animation: "Talking_1",
-    },
-  ];
+    const audioFilePath = `audios/recorded_audio.wav`;
 
-  res.send({ messages });
+    // Mueve el archivo al servidor
+    console.log(`Saving uploaded file to ${audioFilePath}...`);
+    await audioFile.mv(audioFilePath);
+
+    // Verifica el contenido del archivo
+    console.log(`Converting ${audioFilePath} to WAV using ffmpeg...`);
+    await execCommand(
+      `ffmpeg -y -i ${audioFilePath} ${audioFilePath}`
+    );
+
+    console.log(`Conversion completed. Verifying the WAV file...`);
+    const fileExists = await fs
+      .access(audioFilePath)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!fileExists) {
+      return res
+        .status(500)
+        .send({ error: "WAV file was not created successfully." });
+    }
+
+    console.log("Starting LipSync -> wav to json data...");
+    await lipSyncAudio(audioFilePath);
+
+    const messages = [
+      {
+        text: "Here is your response...",
+        audio: await audioFileToBase64(audioFilePath),
+        lipsync: await readJsonTranscript(audioFilePath.replace(".wav", ".json")),
+        facialExpression: "smile",
+        animation: "Talking_1",
+      },
+    ];
+
+    res.send({ messages });
+  } catch (err) {
+    console.error("Error processing audio:", err.message);
+    res.status(500).send({ error: "An error occurred while processing the audio." });
+  }
 });
 
 app.post("/getKnowledgeBase", async (req, res) => {
