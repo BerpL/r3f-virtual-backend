@@ -1,8 +1,8 @@
-import { mkdir, chmod } from "fs/promises";
+import { mkdir, chmod, readdir } from "fs/promises";
 import { createReadStream, createWriteStream } from "fs";
 import https from "https";
 import unzipper from "unzipper";
-import { URL } from "url";
+import path from "path";
 
 const RHUBARB_URL =
   "https://github.com/DanielSWolf/rhubarb-lip-sync/releases/download/v1.13.0/rhubarb-lip-sync-1.13.0-linux.zip";
@@ -43,6 +43,17 @@ async function extractZip(zipPath, destDir) {
   });
 }
 
+async function findRhubarbBin(dir) {
+  const files = await readdir(dir);
+  for (const file of files) {
+    const fullPath = path.join(dir, file);
+    if (file === "rhubarb") {
+      return fullPath; // Return the full path to the binary
+    }
+  }
+  throw new Error("Rhubarb binary not found after extraction");
+}
+
 async function installRhubarb() {
   try {
     console.log("Creating bin directory...");
@@ -54,10 +65,13 @@ async function installRhubarb() {
     console.log("Extracting rhubarb...");
     await extractZip(ZIP_PATH, BIN_DIR);
 
-    console.log("Setting executable permissions...");
-    await chmod(`${BIN_DIR}/rhubarb`, 0o755);
+    console.log("Locating rhubarb binary...");
+    const rhubarbPath = await findRhubarbBin(BIN_DIR);
 
-    console.log("Rhubarb installed successfully.");
+    console.log("Setting executable permissions...");
+    await chmod(rhubarbPath, 0o755);
+
+    console.log("Rhubarb installed successfully at", rhubarbPath);
   } catch (err) {
     console.error("Failed to install rhubarb:", err.message);
     process.exit(1);
